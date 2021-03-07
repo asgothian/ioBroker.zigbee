@@ -45,7 +45,7 @@ const E_WARN=3;
 const E_ERROR=4;
 
 const errorCodes = {
-    0: { severity:E_INFO, message: 'timeout'}
+    0: { severity:E_INFO, message: 'timeout'},
     9999: { severity:E_INFO, message:'No response'},
     233: { severity:E_WARN, message:'MAC NO ACK'},
     205: { severity:E_WARN, message:'No network route'},
