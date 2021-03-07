@@ -87,6 +87,7 @@ class Zigbee extends utils.Adapter {
         let code = error.code;
         if (error.code === undefined)
         {
+            
             let em = error.message.match(/timeout/);
             if (!em) {
                 em =  error.stack.match(/failed \((.+?)\) at/);
