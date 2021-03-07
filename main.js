@@ -45,8 +45,9 @@ const E_WARN=3;
 const E_ERROR=4;
 
 const errorCodes = {
+    0: { severity:E_INFO, message: 'timeout'}
     9999: { severity:E_INFO, message:'No response'},
-    233: { severity:E_DEBUG, message:'MAC NO ACK'},
+    233: { severity:E_WARN, message:'MAC NO ACK'},
     205: { severity:E_WARN, message:'No network route'},
 };
 
@@ -83,15 +84,20 @@ class Zigbee extends utils.Adapter {
 // add: find timeout in message, dann kein error sondern warning
 
     filterError(errormessage, message, error) {
+        let code = error.code;
         if (error.code === undefined)
         {
-            let em =  error.stack.match(/failed \((.+?)\) at/);
-            if (!em) em = error.stack.match(/failed \((.+?)\)/);
-            this.log.error(`${message} no error code (${(em ? em[1]:'undefined')})`);
-            this.log.warn(`Stack trace for ${em}: ${error.stack}`);
-            return;
+            let em = error.message.match(/timeout\);
+            if (!em) {
+                em =  error.stack.match(/failed \((.+?)\) at/);
+                if (!em) em = error.stack.match(/failed \((.+?)\)/);
+                this.log.error(`${message} no error code (${(em ? em[1]:'undefined')})`);
+                this.log.debug(`Stack trace for ${em}: ${error.stack}`);
+                return;
+            }
+            code = 0;
         }
-        const ecode = errorCodes[error.code];
+        const ecode = errorCodes[code];
         if (ecode === undefined) {
             this.log.error(errormessage);
             return;
