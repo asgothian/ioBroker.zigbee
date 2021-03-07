@@ -80,6 +80,7 @@ class Zigbee extends utils.Adapter {
             new BackupPlugin(this),
         ];
     }
+// add: find timeout in message, dann kein error sondern warning
 
     filterError(errormessage, message, error) {
         if (error.code === undefined)
@@ -87,7 +88,7 @@ class Zigbee extends utils.Adapter {
             let em =  error.stack.match(/failed \((.+?)\) at/);
             if (!em) em = error.stack.match(/failed \((.+?)\)/);
             this.log.error(`${message} no error code (${(em ? em[1]:'undefined')})`);
-            this.log.debug(`Stack trace for ${em}: ${error.stack}`);
+            this.log.warn(`Stack trace for ${em}: ${error.stack}`);
             return;
         }
         const ecode = errorCodes[error.code];
@@ -471,7 +472,6 @@ class Zigbee extends utils.Adapter {
 
             const preparedValue = (stateDesc.setter) ? stateDesc.setter(value, options) : value;
             const preparedOptions = (stateDesc.setterOpt) ? stateDesc.setterOpt(value, options) : {};
-
             let syncStateList = [];
             if (stateModel && stateModel.syncStates) {
                 stateModel.syncStates.forEach((syncFunct) => {
@@ -508,7 +508,7 @@ class Zigbee extends utils.Adapter {
             }
             try {
                 const result = await converter.convertSet(target, key, preparedValue, meta);
-                this.log.debug(`convert result ${safeJsonStringify(result)}`);
+                this.log.warn(`convert result ${safeJsonStringify(result)}`);
 
                 this.acknowledgeState(deviceId, model, stateDesc, value);
                 // process sync state list
