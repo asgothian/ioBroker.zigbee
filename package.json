@@ -18,7 +18,7 @@
     "node": ">=10"
   },
   "dependencies": {
-    "zigbee-herdsman": "git+https://github.com/Asgothian/zigbee-herdsman.git",
+    "zigbee-herdsman": "git+https://github.com/Asgothian/zigbee-herdsman#StopErrorFix",
     "zigbee-herdsman-converters": "git+https://github.com/Asgothian/zigbee-herdsman-converters.git",
     "@iobroker/adapter-core": "^2.4.0",
     "tar": "^6.0.5",
