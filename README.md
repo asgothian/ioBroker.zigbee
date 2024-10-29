@@ -137,6 +137,8 @@ You can thank the authors by these links:
 -----------------------------------------------------------------------------------------------------
 ## Changelog
 
+### ### 1.11.1 (2024-11-01)
+
 ### ### 1.10.10 (2024-09-27)
 * (lebrinkma) fix linter errors
 * (asgothian) disable map display for deactivated devices
