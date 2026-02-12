@@ -222,6 +222,7 @@ class Zigbee extends utils.Adapter {
         this.zbController.on('msg', this.stController.onZigbeeEvent.bind(this.stController));
         this.zbController.on('publish', this.stController.publishToState.bind(this.stController));
         this.stController.on('send_payload', this.zbController.publishPayload.bind(this.zbController));
+        this.stController.on('zb_devicecommand', this.zbController.zbDeviceCommand.bind(this.zbController));
         this.stController.on('changed', this.zbController.publishFromState.bind(this.zbController));
         this.zbController.on('resend_states', this.stController.handleStateReset.bind(this.stController));
         this.stController.on('device_query', this.zbController.deviceQuery.bind(this.zbController));
