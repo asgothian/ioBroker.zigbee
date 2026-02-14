@@ -251,7 +251,7 @@ function getModelData(data, models, keys) {
             <td rowspan="${numrows}" width="10%"><img src=${model.model.icon} class="dev_list"></td>
             <td rowspan="${numrows}" width="15%">${legacy} model<br>${key}</td>
             <td colspan="3">${devtxt}</td>
-            <td>${d_btn}&nbsp;${e_btn}</td></tr>`)
+            <td>${d_btn}&nbsp;${numOptions == 0 ? e_btn : ''}</td></tr>`)
         let cnt = 0;
         if (foldData.devices) {
             let isOdd = false;
@@ -277,7 +277,7 @@ function getModelData(data, models, keys) {
             const opttxt = (numOptions > 0) ? `${numOptions} global option${numOptions > 1 ? 's' : ''}` :''
             Html.push(`<tr id="datarowodd">
                 <td colspan="3">${opttxt}</td>
-                <td>${btnParam(o_btn_name, o_btn_tip, foldData.options ? 'expand_less' : 'expand_more')}&nbsp;${e_btn}</td></tr>`)
+                <td>${btnParam(o_btn_name, o_btn_tip, foldData.options ? 'expand_less' : 'expand_more')}&nbsp;${numOptions > 0 ? e_btn : ''}</td></tr>`);
             if (foldData.options) {
                 let isOdd = false;
                 for (const key of Object.keys(model.setOptions)) {
