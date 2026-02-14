@@ -9,6 +9,7 @@ const Materialize = (typeof M !== 'undefined') ? M : Materialize,
     namespace = 'zigbee.' + instance,
     namespaceLen = namespace.length;
 let devices = [],
+    adapterDefinedOptions = [],
     models = [],
     debugDevices = [],
     messages = [],
@@ -1538,6 +1539,7 @@ async function editDeviceOptions(id, isModel) {
             const disabled = device_options[k]?.isCustom ? '' : 'disabled ';
             //console.warn(`option for ${k} is ${JSON.stringify(device_options[k])}`);
             html_options.push(`<div class="row">`);
+            const optionType = expose.type;
             switch (expose.type) {
                 case 'numeric':
                     html_options.push(`<div class="input-field  col s5 m5 l5"><input ${disabled}id="option_key_${k}" type="text" class="value" /><label for="option_key_${k}">Option</label></div>`)
@@ -1600,7 +1602,7 @@ async function editDeviceOptions(id, isModel) {
     }
 
     function getExposeFromOptions(option) {
-        const rv = dialogData.model.optionExposes.find((expose) => expose.name === option);
+        const rv = [dialogData.model.optionExposes, adapterDefinedOptions].flat().find((expose) => expose.name === option);
         //console.warn(`GEFO: ${option} results in ${JSON.stringify(rv)}`);
         if (rv) return rv;
         return { type:option === 'legacy' ? 'binary' : 'string' };
@@ -1666,14 +1668,13 @@ async function editDeviceOptions(id, isModel) {
 
     const dialogData = {};
 
-    const adapterDefinedOptions = ['resend_states']
 
     if (isModel) {
         const model = id.model;
         dialogData.model = model;
         dialogData.availableOptions = model.options.slice() || [];
         dialogData.availableOptions.push('custom');
-        dialogData.availableOptions.push(...adapterDefinedOptions)
+        dialogData.availableOptions.push(...adapterDefinedOptions.map(o => o.name));
         if (model.hasLegacyDef) dialogData.availableOptions.push('legacy');
         dialogData.setOptions = {};
         for (const k in Object.keys(id.setOptions))
@@ -1689,7 +1690,7 @@ async function editDeviceOptions(id, isModel) {
         const dev = devices.find((d) => d._id == id);
         dialogData.model = dev.info.mapped;
         dialogData.availableOptions = (dev.info.mapped ? dev.info.mapped.options.slice() || []:[]);
-        dialogData.availableOptions.push(...adapterDefinedOptions)
+        dialogData.availableOptions.push(...adapterDefinedOptions.map(o => o.name));
         dialogData.name = dev.common.name;
         dialogData.icon = dev.common.icon || dev.icon;
         dialogData.defaultIcon = (dev.common.type === 'group' ? dev.common.modelIcon : `img/${dev.common.type.replace(/\//g, '-')}.png`);
@@ -2094,6 +2095,7 @@ function getDevices() {
 function extractDevicesData(msg) {
     //console.warn(JSON.stringify(msg.errors));
     devices = msg.devices ? msg.devices : [];
+    adapterDefinedOptions = msg.adapterOptions ? msg.adapterOptions: [];
     // check if stashed error messages are sent alongside
     if (msg.clean)
         $('#state_cleanup_btn').removeClass('hide');

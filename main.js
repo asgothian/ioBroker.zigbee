@@ -216,7 +216,8 @@ class Zigbee extends utils.Adapter {
         this.zbController.on('ready', this.onZigbeeAdapterReady.bind(this));
         this.zbController.on('disconnect', this.onZigbeeAdapterDisconnected.bind(this));
         this.zbController.on('new', this.newDevice.bind(this));
-        this.zbController.on('leave', this.leaveDevice.bind(this));
+        this.zbController.on('leave', this.stController.leaveDevice.bind(this));
+        this.zbController.on('announce', this.stController.announceDevice.bind(this));
         this.zbController.on('pairing', this.onPairing.bind(this));
         this.zbController.on('event', this.stController.onZigbeeEvent.bind(this.stController));
         this.zbController.on('msg', this.stController.onZigbeeEvent.bind(this.stController));
@@ -224,7 +225,7 @@ class Zigbee extends utils.Adapter {
         this.stController.on('send_payload', this.zbController.publishPayload.bind(this.zbController));
         this.stController.on('zb_devicecommand', this.zbController.zbDeviceCommand.bind(this.zbController));
         this.stController.on('changed', this.zbController.publishFromState.bind(this.zbController));
-        this.zbController.on('resend_states', this.stController.handleStateReset.bind(this.stController));
+        this.zbController.on('resend_states', this.stController.handleStateResend.bind(this.stController));
         this.stController.on('device_query', this.zbController.deviceQuery.bind(this.zbController));
         this.zbController.on('acknowledge_state', this.acknowledgeState.bind(this));
         this.zbController.on('stash_error', this.stController.stashErrors.bind(this.stController));
@@ -714,6 +715,8 @@ class Zigbee extends utils.Adapter {
         }
     }
 
+    /*
+
     leaveDevice(ieeeAddr) {
         if (this.debugActive) this.log.debug(`Leave device event: ${ieeeAddr}`);
         if (ieeeAddr) {
@@ -723,6 +726,7 @@ class Zigbee extends utils.Adapter {
         }
     }
 
+    */
     async callPluginMethod(method, parameters) {
         for (const plugin of this.plugins) {
             if (plugin[method]) {
