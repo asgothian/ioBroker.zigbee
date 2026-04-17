@@ -2520,6 +2520,17 @@ function load(settings, onChange) {
             $('#device-filter-btn').text($(this).text());
             doFilter();
         });
+        $('#bind-search').keyup(function (event) {
+            showHerdsmanBinding(event.target.value.toLowerCase());
+        });
+        $('#bind-order a').click(function () {
+            $('#bind-order-btn').text($(this).text());
+            showHerdsmanBinding();
+        });
+        $('#bind-filter a').click(function () {
+            $('#bind-filter-btn').text($(this).text());
+            showHerdsmanBinding();
+        });
         $('#model-search').keyup(function (event) {
             LocalDataDisplayValues.searchVal = event.target.value.toLowerCase();
             if (!LocalDataDisplayValues.searchTimeout)
@@ -2764,6 +2775,7 @@ socket.emit('subscribe', namespace + '.*');
 socket.emit('subscribeObjects', namespace + '.*');
 
 // react to changes
+const borderArr = ['border_bottom', 'border_left','border_top', 'border_right'];
 socket.on('stateChange', function (id, state) {
     UpdateAdapterAlive(true);
     // only watch our own states
@@ -2812,8 +2824,7 @@ socket.on('stateChange', function (id, state) {
                     const numDev = Number(state.val.split(':').pop()) || 0;
                     if (numDev > 0) {
                         $(`#map_generating_btn`).removeClass('hide');
-                        if (numDev < 10) $(`#map_generating_btn`).html(`<i class="material-icons large icon-blue">filter_${numDev}</i>`);
-                        else $(`#map_generating_btn`).html(`<i class="material-icons large icon-blue">${numDev%2 ? 'filter_9_plus' : 'queue'}</i>`);
+                        $(`#map_generating_btn`).html(`<i class="material-icons large">${borderArr[numDev%4]}</i>`);
                     }
                     else {
                         $('#map_generating_btn').addClass('hide');
@@ -4282,9 +4293,11 @@ function editHerdsmanBindingDialog(bind_id) {
 }
 
 
+
 function showBinding() {
     const element = $('#binding');
     element.find('.binding').remove();
+
     if (!binding || !binding.length) return;
     binding.forEach(b => {
         const bind_id = b.id,
@@ -4365,19 +4378,42 @@ function bindInfoFromId(id) {
     };
 }
 
-function showHerdsmanBinding() {
+function showHerdsmanBinding(searchentry) {
+    const bindOrderFunctions = {
+        'source': (a, b) => a.dst_name < b.dst_name ? a.dst_name == b.dst_name ? 0 : -1 : 1,
+        'target': (a, b) => a.dst_name < b.dst_name ? a.dst_name == b.dst_name ? 0 : -1 : 1,
+        'sourceieee': (a,b) => a.src_ieee < b.src_ieee ? a.src_ieee == b.src_ieee ? 0 : -1 : 1,
+        'targetieee': (a,b) => a.src_ieee < b.src_ieee ? a.src_ieee == b.src_ieee ? 0 : -1 : 1,
+        default: (a, b) => 0
+    }
+
+    const bindFilterFunctions = {
+        device: (o) => !o.hasCoordinatorDest,
+        coordinator: (o) => o.hasCoordinatorDest,
+        all: (o) => true,
+    }
+
+    const bindFilter = $('#bind-filter-btn').text().toLowerCase();
+    const bindOrder = $('#bind-order-btn').text().toLowerCase().replace(' ','');
+    const bindSearch = $('#bind-search').text().toLowerCase();
+    const cards = [];
+    console.warn(`showHerdsmanBindings called with se ${searchentry}  bs ${bindSearch} bf ${bindFilter} bo ${bindOrder}`);
+
     const element = $('#binding');
     element.find('.binding').remove();
 
     for (const source of Object.values(herdsmanBindings)) {
         const source_dev = devices.find((d) => source.address == d.info.device.ieee);
+        if (!source_dev) continue;
         const source_icon = (source_dev?.icon) ? `<img src="${source_dev.icon}" width="64px">` : '';
-        const cardParts = [];
+        //const cardParts = [];
         const s_ep = source_dev?.info?.endpoints?.find((ep) => ep.ID == source.endpoint)
         const s_epName = s_ep ? s_ep.epName : source.endpoint;
         const icons = [];
         for (const binding of Object.values(source.binds)) {
+            const cardParts = [];
             const target_dev = devices.find((d) => binding.address == d.info.device.ieee);
+            if (searchentry && (!source_dev.common?.name?.toLowerCase().includes(searchentry) || target_dev?.common?.name?.toLowerCase().includes(searchentry))) continue;
             const target_icon = (target_dev?.icon) ? `<img src="${target_dev.icon}" width="64px">` : '';
             const t_ep = target_dev?.info?.endpoints?.find((ep) => ep.ID == source.endpoint)
             const t_epName = t_ep ? t_ep.epName : binding.endpoint;
@@ -4402,9 +4438,21 @@ function showHerdsmanBinding() {
                                         <i class="material-icons icon-green">edit</i>
                                     </button>
                         </span></div></div></div>`);
+            cards.push({
+                src_name: source_dev.common?.name?.toLowerCase(),
+                src_iee: src_id, card:cardParts.join(''),
+                dst_name: source_dev.common?.name?.toLowerCase(),
+                dst_ieee:dst_id,
+                hasCoordinatorDest: target_dev?.common?.name?.toLowerCase() === 'coordinator' })
         }
-        element.append(cardParts.join(''));
+
     }
+
+    const sorted = cards.filter(bindFilterFunctions[bindFilter]).sort(bindOrderFunctions[bindOrder]);
+
+    console.warn(`pre-sort: ${JSON.stringify(cards.map((o) => o.src_name))} - post-sort: ${JSON.stringify(sorted.map((o) => o.src_name))}`);
+
+    element.append(sorted.map((o) => o.card).join(''));
 
     $('#binding button[name=\'delete\']').click(function () {
         const bind_id = bindInfoFromId($(this).parents('.binding')[0].id);

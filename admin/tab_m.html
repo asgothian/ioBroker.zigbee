@@ -178,7 +178,7 @@
         perspective: 800px;
     }
     .binding {
-        padding: 8px;
+        padding: 2px;
         width: 90%;
         height: auto !important;
         -webkit-perspective: 800px;
@@ -735,12 +735,12 @@
                         </li>
                         <li>
                             <a id="map_errors_btn" class="btn-floating waves-effect waves-light orange tooltipped center-align hoverable translateT hide" title="Show errors from map generation">
-                            <i class="material-icons large">filter_none</i></a>
+                            <i class="material-icons large">border_outer</i></a>
                             </li>
                         <li>
                         <li>
                             <a id="map_generating_btn" class="btn-floating waves-effect waves-light blue tooltipped center-align hoverable translateT hide" title="Map generation in progress">
-                            <i class="material-icons large">filter_none</i></a>
+                            <i class="material-icons large">border_outer</i></a>
                             </li>
                         <li>
                         <li>
@@ -975,7 +975,45 @@
                         <i class="material-icons large">add</i>
                     </a>
                 </div>
-                <div id="binding" class="row s6">
+                <nav class="resposHeight" style="margin-left: -12px; line-height: 24px; width: calc(100% + 24px);">
+                    <ul id="nav-mobile" class="left">
+                        <li>
+                            <div class="col main-toolbar-table-types-tools main-toolbar-table-filter input-field" style="line-height: 24px;">
+                                <i class="material-icons prefix" style="line-height: 24px;">search</i>
+                                <input id="bind-search" class="filter-input translateP" placeholder="Искать" readonly="readonly" onfocus="if (this.hasAttribute('readonly')) {this.removeAttribute('readonly'); this.blur(); this.focus();}" data-lang-placeholder="Filter">
+                                <a class="filter-clear btn-floating btn-very-small translateT red lighten-3" title="Очистить" data-lang-title="clear" style="display: none;"><i class="material-icons">clear</i></a>
+                            </div>
+
+                        </li>
+                        <li>
+                            <div class="col input-field" style="line-height: 24px;">
+                                <i class="material-icons left" style="line-height: 24px; margin-top: 5px;">sort</i>
+                                <a id="bind-order-btn" class="dropdown-trigger btn" href="#" data-target="bind-order">Default</a>
+                                <ul id="bind-order" class="dropdown-content" tabindex="0">
+                                    <li class="bind-order-item" data-type="default" tabindex="0"><a class="translate" data-lang="Default">Default</a></li>
+                                    <li class="bind-order-item" data-type="saz" tabindex="0"><a class="translate" data-lang="source">Source</a></li>
+                                    <li class="bind-order-item" data-type="taz" tabindex="0"><a class="translate" data-lang="target">Target</a></li>
+                                    <!--<li class="device-order-item" data-type="kind" tabindex="0"><a class="translate" data-lang="Kind">Kind</a></li>-->
+                                    <!--<li class="device-order-item" data-type="status" tabindex="0"><a class="translate" data-lang="Status">Status</a></li>-->
+                                    <li class="bind-order-item" data-type="sieee" tabindex="0"><a class="translate" data-lang="source IEEE">Source IEEE</a></li>
+                                    <li class="bind-order-item" data-type="sieee" tabindex="0"><a class="translate" data-lang="target IEEE">Target IEEE</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="col input-field" style="line-height: 24px;">
+                                <i class="material-icons left" style="line-height: 24px; margin-top: 5px;">filter_list</i>
+                                <a id="bind-filter-btn" class="dropdown-trigger btn" href="#" data-target="bind-filter">Device</a>
+                                <ul id="bind-filter" class="dropdown-content" tabindex="0">
+                                    <li class="bind-filter-item" data-type="device" tabindex="0"><a class="translate" data-lang="Device">Device</a></li>
+                                    <li class="bind-filter-item" data-type="all" tabindex="0"><a class="translate" data-lang="All">All</a></li>
+                                    <li class="bind-filter-item" data-type="coordinator" tabindex="0"><a class="translate" data-lang="Coordinator">Coordinator</a></li>
+                                </ul>
+                            </div>
+                        </li>
+                    </ul>
+                </nav>
+                <div id="binding" class="row" >
                 </div>
             </div>
             <div id="tab-exclude" class="col s12 page">
