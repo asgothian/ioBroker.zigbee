@@ -525,7 +525,7 @@ function getCard(dev) {
         lq = (dev.link_quality > 0)
             ? `<div class="col tool"><i id="${rid}_link_quality_icon" class="material-icons ${lqi_cls}">network_check</i><div id="${rid}_link_quality" class="center" style="font-size:0.7em">${dev.link_quality}</div></div>`
             : `<div class="col tool"><i class="material-icons icon-black">leak_remove</i></div>`,
-        status = (isActive ? lq : `<div class="col tool"><i class="material-icons icon-red">cancel</i></div>`),
+        status = (isActive ? lq : `<div class="col tool"><i class="material-icons icon-red">phonelink_erase</i></div>`),
         info = `<div style="min-height:${height - 112}px; font-size: 0.8em" class="truncate">
                     <ul>
                         <li><span class="labelinfo">ieee:</span><span>0x${ieee}</span></li>
@@ -840,8 +840,8 @@ function getDashCard(dev, info, height, groupImage, groupstatus) {
         <div class="card-content zcard">
             <div style="cursor: pointer">
             <span class="top right small" style="border-radius: 50%">
-                ${device_queryBtn}
-                ${permitJoinBtn}
+                ${isActive ? device_queryBtn : ''}
+                ${isActive ? permitJoinBtn : ''}
             </span>
             <div  class="flip">
             <span class="top right small" style="border-radius: 50%">
