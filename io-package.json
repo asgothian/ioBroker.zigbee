@@ -1,7 +1,7 @@
 {
   "common": {
     "name": "zigbee",
-    "version": "3.4.4-alpha.0",
+    "version": "3.4.4-alpha.1",
     "news": {
       "3.4.3": {
         "en": "Dynamic IU setting (2 card sizes)\nBugfixes\n",
