@@ -1122,7 +1122,7 @@ class Zigbee extends adapterCore.Adapter {
                 role: stateDef.common.role,
                 unit: stateDef.common.unit,
                 states: stateDef.common.states,
-                isAction: stateDef.native?.isAction ?? false,
+                category: stateDef.native?.category ?? undefined,
                 isEvent: stateDef.common.isEvent ?? false,
             };
         });
@@ -1247,7 +1247,7 @@ class Zigbee extends adapterCore.Adapter {
             }
         }
 
-        await Promise.all(PromiseChain);
+        await Promise.allSettled(PromiseChain);
 
         for (const groupmember in groups) {
             const device = deviceObjects.find(dev => (groupmember === dev.native.id));

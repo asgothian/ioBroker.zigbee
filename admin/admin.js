@@ -805,10 +805,10 @@ function getDashCardInfoAndHeight(statesDef) {
             // val = `<span class="input-field dash value"><input class="dash value" id="${stateDef.name}" value="${val}"></input></span>`;
         }
         else if (stateDef.type === 'number') {
-            val = `<span class="dash value">${val ? val : 0} ${(stateDef.unit) ? stateDef.unit : ''}</span>`;
+            val = `<span class="dash value">${val ?? 0} ${(stateDef.unit) ? stateDef.unit : ''}</span>`;
         }
         else {
-            val = `<span class="dash value">${val ? val : '(null)'} ${(stateDef.unit) ? stateDef.unit : ''}</span>`;
+            val = `<span class="dash value">${val ?? 'null'} ${(stateDef.unit) ? stateDef.unit : ''}</span>`;
         }
         rv.length++;
         return `<li><span class="label dash truncate" title="${stateDef.name}">${stateDef.name}</span><span id=${sid} oid=${id} class="state">${val}</span></li>`;
