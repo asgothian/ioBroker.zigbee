@@ -34,6 +34,7 @@ const OtaPlugin = require('./lib/ota');
 const BackupPlugin = require('./lib/backup');
 // libraries
 const utils = require('./lib/utils');
+const { devLabel } = require('./lib/deviceLabel');
 const dmZigbee  = require('./lib/devicemgmt.js');
 const DeviceDebug = require('./lib/DeviceDebug');
 const localConfig = require('./lib/localConfig');
@@ -219,7 +220,7 @@ class Zigbee extends adapterCore.Adapter {
 
         const dbActive = await this.getForeignState(`system.adapter.${this.namespace}.logLevel`);
         this.debugActive = (dbActive && dbActive.val === 'debug');
-        this.log.info('Adapter ready - starting subsystems. Adapter is running in '+dbActive.val+ ' mode.');
+        this.log.info('Adapter ready - starting subsystems. Adapter is running in '+(dbActive?.val ?? 'unknown')+ ' mode.');
         if (this.config.debugHerdsman) {
             if (debug) {
                 this.log.warn('Activating zigbee-herdsman debug connection - successful');
@@ -763,17 +764,17 @@ class Zigbee extends adapterCore.Adapter {
         const model = (entity.mapped) ? entity.mapped.model : device.modelID;
         this.log.debug(`New device event: ${safeJsonStringify(utils.entityData(entity))}`);
         if (!entity.mapped && !entity.device.interviewing) {
-            const msg = `New device: '${device.ieeeAddr}' does not have a known model. please provide an external converter for '${device.modelID}'.`;
+            const msg = `New device: '${devLabel(this, device.ieeeAddr)}' does not have a known model. please provide an external converter for '${device.modelID}'.`;
             this.log.warn(msg);
             this.logToPairing(msg, true);
         }
         await this.stController.AddModelFromHerdsman(entity.device, model)
         if (device) {
             this.getObjectAsync(utils.zbIdorIeeetoAdId(this, device.ieeeAddr, false), (_err, obj) => {
-                if (!obj) this.logToPairing(`New device joined '${device.ieeeAddr}' model ${model}`, true);
+                if (!obj) this.logToPairing(`New device joined '${devLabel(this, device.ieeeAddr)}' model ${model}`, true);
             });
             const model = (entity.mapped) ? entity.mapped.model : entity.device.modelID;
-            if (this.debugActive) this.log.debug(`new device ${device.ieeeAddr} ${device.networkAddress} ${model} `);
+            if (this.debugActive) this.log.debug(`new device '${devLabel(this, device.ieeeAddr)}' ${device.networkAddress} ${model} `);
             await this.stController.updateDev(utils.zbIdorIeeetoAdId(this, device.ieeeAddr, false), entity.name, model);
             await this.stController.syncDevStates(device, model);
         }
@@ -782,10 +783,10 @@ class Zigbee extends adapterCore.Adapter {
     /*
 
     leaveDevice(ieeeAddr) {
-        if (this.debugActive) this.log.debug(`Leave device event: ${ieeeAddr}`);
+        if (this.debugActive) this.log.debug(`Leave device event: '${devLabel(this, ieeeAddr)}'`);
         if (ieeeAddr) {
             const devId = zbIdorIeeetoAdId(this, ieeeAddr, false);
-            if (this.debugActive) this.log.debug(`Delete device ${devId} from iobroker.`);
+            if (this.debugActive) this.log.debug(`Delete device '${devLabel(this, devId)}' from iobroker.`);
             this.stController.deleteObj(devId);
         }
     }
@@ -1096,7 +1097,7 @@ class Zigbee extends adapterCore.Adapter {
                 return rv;
             }
             const dev = entity ? entity.device || {} : {}
-            const msg = entity ? `device ${entity.name} (${dev.ieeeAddr}, NWK ${dev.networkAddres}, ID: ${dev.ID})` : 'undefined device';
+            const msg = entity ? `device '${devLabel(this, dev.ieeeAddr)}' (${dev.ieeeAddr}, NWK ${dev.networkAddres}, ID: ${dev.ID})` : 'undefined device';
             this.log.warn(`Error ${error && error.message ? error.message + ' ' : ''}building device info for ${msg}`);
         }
         return rv;
