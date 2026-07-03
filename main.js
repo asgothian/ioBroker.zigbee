@@ -219,7 +219,7 @@ class Zigbee extends adapterCore.Adapter {
 
         const dbActive = await this.getForeignState(`system.adapter.${this.namespace}.logLevel`);
         this.debugActive = (dbActive && dbActive.val === 'debug');
-        this.log.info('Adapter ready - starting subsystems. Adapter is running in '+dbActive.val+ ' mode.');
+        this.log.info('Adapter ready - starting subsystems. Adapter is running in '+(dbActive?.val ?? 'unknown')+ ' mode.');
         if (this.config.debugHerdsman) {
             if (debug) {
                 this.log.warn('Activating zigbee-herdsman debug connection - successful');
