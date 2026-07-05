@@ -238,6 +238,9 @@ class Zigbee extends adapterCore.Adapter {
         this.subscribeForeignStates(`system.adapter.${this.namespace}.logLevel`)
         // set connection false before connect to zigbee
         this.setState('info.connection', false, true);
+        // prime the device name cache before the zigbee subsystem starts logging, so devLabel
+        // resolves the stored (default) device names from the first log line on
+        await this.stController.loadDeviceNameCache();
         const zigbeeOptions = this.getZigbeeOptions();
         this.zbController = new ZigbeeController(this);
 
