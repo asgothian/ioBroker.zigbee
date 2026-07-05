@@ -1104,7 +1104,8 @@ class Zigbee extends adapterCore.Adapter {
     }
 
     async fillInfo(device, entity, device_stateDefs, all_states, models) {
-        const reg = /\(.*\)/;
+        const reg_a = /\(.*\)/;
+        const reg_b = /Indicates .* the/
         device.statesDef = (device_stateDefs || []).filter(stateDef => {
             const sid = stateDef._id.replace(this.namespace + '.', '');
             const names = sid.split('.');
@@ -1115,7 +1116,7 @@ class Zigbee extends adapterCore.Adapter {
             // replace state
             return {
                 id: stateDef._id,
-                name: name.slice(0,128).replace(reg, ''),
+                name: name.slice(0,256).replace(reg_a, '').replace(reg_b, `The`),
                 type: stateDef.common.type,
                 read: stateDef.common.read,
                 write: stateDef.common.write,
@@ -1123,7 +1124,7 @@ class Zigbee extends adapterCore.Adapter {
                 role: stateDef.common.role,
                 unit: stateDef.common.unit,
                 states: stateDef.common.states,
-                isAction: stateDef.native?.isAction ?? false,
+                category: stateDef.native?.category,
                 isEvent: stateDef.common.isEvent ?? false,
             };
         });
