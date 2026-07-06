@@ -845,6 +845,16 @@ class Zigbee extends adapterCore.Adapter {
         }
     }
 
+    getNvBackup(dbDir) {
+        try {
+            const nvbackup = fs.readFileSync(`${dbDir}/nvbackup.json`);
+            return JSON.parse(nvbackup)
+        } catch {
+            return {}
+        }
+
+    }
+
     getZigbeeOptions(overrideOptions) {
         const override = overrideOptions ?? {};
         // file path for db
@@ -863,10 +873,15 @@ class Zigbee extends adapterCore.Adapter {
             this.log.error('Serial port not selected! Go to settings page.');
             this.sendError('Serial port not selected! Go to settings page.');
         }
+
+
+        const nvbackup = this.getNvBackup(dbDir);
+        if (this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id) this.warn('possible reversed ExtPanID');
+
         const panID = parseInt(override.panID ? override.panID : this.config.panID ? this.config.panID : 0x1a62);
-        const channel = parseInt(override.channel ? override.channel : this.config.channel ? this.config.channel : 11);
-        const precfgkey = createByteArray(override.precfgkey ? override.precfgkey : this.config.precfgkey ? this.config.precfgkey : '01030507090B0D0F00020406080A0C0D');
-        const extPanId = createByteArray(override.extPanID ? override.extPanID : this.config.extPanID ? this.config.extPanID : 'DDDDDDDDDDDDDDDD').reverse();
+        const channel =  parseInt(override.channel ? override.channel : this.config.channel ? this.config.channel : 11);
+        const precfgkey = override.precfgkey ? override.precfgkey : this.config.precfgkey;
+        const extPanId = override.extPanID ? override.extPanID : this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id ? utils.reverseHexString(this.config.extPanID) : this.config.extPanID;
         const adapterType = override.adapterType ? override.adapterType : this.config.adapterType || 'zstack';
         // https://github.com/ioBroker/ioBroker.zigbee/issues/668
         const extPanIdFix = this.config.extPanIdFix ? this.config.extPanIdFix : false;
@@ -877,9 +892,9 @@ class Zigbee extends adapterCore.Adapter {
         return {
             net: {
                 panId: panID,
-                extPanId: extPanId,
+                extPanId: createByteArray(extPanId).reverse(),
                 channelList: [channel],
-                precfgkey: precfgkey
+                precfgkey: createByteArray(precfgkey),
             },
             sp: {
                 port: port,
