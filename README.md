@@ -141,6 +141,13 @@ You can thank the authors by these links:
 
 -----------------------------------------------------------------------------------------------------
 ## Changelog
+### **WORK IN PROGRESS**
+* (krobipd) Bugfix - Shelly gen4 Devices
+* (kropipd) various bugfixes
+* (asgothian) device manager updates
+* (asgothian) ZH 10.6, ZHC 26.79
+* (asgothian) Additional UI / DevMgr options
+
 ### 3.4.11 (2026-06-27)
 * Bugfix - boolean in native
 *
