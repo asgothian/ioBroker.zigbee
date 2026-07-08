@@ -57,13 +57,6 @@ const zigbeeHerdsmanConvertersPackage = require('zigbee-herdsman-converters/pack
 const zigbeeHerdsmanPackage = require('zigbee-herdsman/package.json')
 
 
-const createByteArray = function (hexString) {
-    const bytes = [];
-    for (let c = 0; c < hexString.length; c += 2) {
-        bytes.push(parseInt(hexString.substr(c, 2), 16));
-    }
-    return bytes;
-};
 
 const E_INFO  = 1;
 const E_DEBUG = 2;
@@ -881,7 +874,7 @@ class Zigbee extends adapterCore.Adapter {
         const panID = parseInt(override.panID ? override.panID : this.config.panID ? this.config.panID : 0x1a62);
         const channel =  parseInt(override.channel ? override.channel : this.config.channel ? this.config.channel : 11);
         const precfgkey = override.precfgkey ? override.precfgkey : this.config.precfgkey;
-        const extPanId = override.extPanID ? override.extPanID : this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id ? utils.reverseHexString(this.config.extPanID) : this.config.extPanID;
+        const extPanId = override.extPanID ? override.extPanID : this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id ? utils.reverseByteString(this.config.extPanID) : this.config.extPanID;
         const adapterType = override.adapterType ? override.adapterType : this.config.adapterType || 'zstack';
         // https://github.com/ioBroker/ioBroker.zigbee/issues/668
         const extPanIdFix = this.config.extPanIdFix ? this.config.extPanIdFix : false;
@@ -892,9 +885,9 @@ class Zigbee extends adapterCore.Adapter {
         return {
             net: {
                 panId: panID,
-                extPanId: createByteArray(extPanId).reverse(),
+                extPanId: utils.stringToByteArray(extPanId, true),
                 channelList: [channel],
-                precfgkey: createByteArray(precfgkey),
+                precfgkey: utils.stringToByteArray(precfgkey),
             },
             sp: {
                 port: port,

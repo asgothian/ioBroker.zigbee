@@ -44,6 +44,7 @@ let devices = [],
     debugInLog = true,
     nvRamBackup = {},
     dynamicUI = true,
+    tilesingleaction = true,
     isHerdsmanRunning = false;
 const dbgMsgfilter = new Set();
 const dbgMsghide = new Set();
@@ -70,7 +71,7 @@ const savedSettings = [
     'port', 'panID', 'channel', 'disableLed', 'countDown', 'groups', 'extPanID', 'precfgkey', 'transmitPower','useNewCompositeStates',
     'adapterType', 'debugHerdsman', 'disableBackup', 'external', 'startWithInconsistent','pingTimeout','listDevicesAtStart',
     'warnOnDeviceAnnouncement', 'baudRate', 'flowCTRL', 'autostart', 'readAtAnnounce', 'startReadDelay', 'readAllAtStart','pingCluster',
-    'availableUpdateTime', 'readBrightnessAndState', 'dynamicUI', 'reconnectCount','reconnectDelay'
+    'availableUpdateTime', 'readBrightnessAndState', 'dynamicUI', 'reconnectCount','reconnectDelay', 'tilesingleaction', 'devmgrsingleaction'
 ];
 const lockout = {
     timeoutid:undefined,
@@ -767,7 +768,8 @@ function getDashCardInfoAndHeight(statesDef) {
         const id = stateDef.id;
         const sid = id.split('.').join('_');
         let val = stateDef.val === undefined ? '' : stateDef.val;
-        if (stateDef.role === 'switch' && stateDef.write) {
+        if (stateDef.category === 'singleaction' && !tilesingleaction) return '';
+        if (stateDef.role.startsWith('switch') && stateDef.write) {
             val = `<span class="switch"><label><input type="checkbox" ${(val) ? 'checked' : ''}><span class="lever"></span></label></span>`;
         } else if (stateDef.role === 'level.dimmer' && stateDef.write) {
             val = `<span class="range-field dash"><input type="range" min="0" max="100" value="${(val != '') ? val : 0}" /></span>`;
@@ -2330,6 +2332,7 @@ function load(settings, onChange) {
         }
     }
     dynamicUI = settings.dynamicUI ?? true;
+    tilesingleaction = settings.tilesingleaction ?? true;
 
     getComPorts(onChange);
 
