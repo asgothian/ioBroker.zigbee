@@ -1116,7 +1116,7 @@ class Zigbee extends adapterCore.Adapter {
 
     async fillInfo(device, entity, device_stateDefs, all_states, models) {
         const reg_a = /\(.*\)/;
-        const reg_b = /Indicates .* the/
+        const reg_b = /Indicates .* the/;
         device.statesDef = (device_stateDefs || []).filter(stateDef => {
             const sid = stateDef._id.replace(this.namespace + '.', '');
             const names = sid.split('.');
