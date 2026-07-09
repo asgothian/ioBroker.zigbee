@@ -327,7 +327,9 @@
     "readBrightnessAndState": true,
     "dynamicUI": false,
     "reconnectCount": 5,
-    "reconnectDelay": 10
+    "reconnectDelay": 10,
+    "tilesingleaction": true,
+    "devmgrsingleaction": false
   },
   "instanceObjects": [
     {

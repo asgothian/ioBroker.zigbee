@@ -57,13 +57,6 @@ const zigbeeHerdsmanConvertersPackage = require('zigbee-herdsman-converters/pack
 const zigbeeHerdsmanPackage = require('zigbee-herdsman/package.json')
 
 
-const createByteArray = function (hexString) {
-    const bytes = [];
-    for (let c = 0; c < hexString.length; c += 2) {
-        bytes.push(parseInt(hexString.substr(c, 2), 16));
-    }
-    return bytes;
-};
 
 const E_INFO  = 1;
 const E_DEBUG = 2;
@@ -845,6 +838,16 @@ class Zigbee extends adapterCore.Adapter {
         }
     }
 
+    getNvBackup(dbDir) {
+        try {
+            const nvbackup = fs.readFileSync(`${dbDir}/nvbackup.json`);
+            return JSON.parse(nvbackup)
+        } catch {
+            return {}
+        }
+
+    }
+
     getZigbeeOptions(overrideOptions) {
         const override = overrideOptions ?? {};
         // file path for db
@@ -863,10 +866,15 @@ class Zigbee extends adapterCore.Adapter {
             this.log.error('Serial port not selected! Go to settings page.');
             this.sendError('Serial port not selected! Go to settings page.');
         }
+
+
+        const nvbackup = this.getNvBackup(dbDir);
+        if (this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id) this.warn('possible reversed ExtPanID');
+
         const panID = parseInt(override.panID ? override.panID : this.config.panID ? this.config.panID : 0x1a62);
-        const channel = parseInt(override.channel ? override.channel : this.config.channel ? this.config.channel : 11);
-        const precfgkey = createByteArray(override.precfgkey ? override.precfgkey : this.config.precfgkey ? this.config.precfgkey : '01030507090B0D0F00020406080A0C0D');
-        const extPanId = createByteArray(override.extPanID ? override.extPanID : this.config.extPanID ? this.config.extPanID : 'DDDDDDDDDDDDDDDD').reverse();
+        const channel =  parseInt(override.channel ? override.channel : this.config.channel ? this.config.channel : 11);
+        const precfgkey = override.precfgkey ? override.precfgkey : this.config.precfgkey;
+        const extPanId = override.extPanID ? override.extPanID : this.config.extPanID.toLowerCase() == nvbackup.extended_pan_id ? utils.reverseByteString(this.config.extPanID) : this.config.extPanID;
         const adapterType = override.adapterType ? override.adapterType : this.config.adapterType || 'zstack';
         // https://github.com/ioBroker/ioBroker.zigbee/issues/668
         const extPanIdFix = this.config.extPanIdFix ? this.config.extPanIdFix : false;
@@ -877,9 +885,9 @@ class Zigbee extends adapterCore.Adapter {
         return {
             net: {
                 panId: panID,
-                extPanId: extPanId,
+                extPanId: utils.stringToByteArray(extPanId, true),
                 channelList: [channel],
-                precfgkey: precfgkey
+                precfgkey: utils.stringToByteArray(precfgkey),
             },
             sp: {
                 port: port,
@@ -1107,7 +1115,8 @@ class Zigbee extends adapterCore.Adapter {
     }
 
     async fillInfo(device, entity, device_stateDefs, all_states, models) {
-        const reg = /\(.*\)/;
+        const reg_a = /\(.*\)/;
+        const reg_b = /Indicates .* the/;
         device.statesDef = (device_stateDefs || []).filter(stateDef => {
             const sid = stateDef._id.replace(this.namespace + '.', '');
             const names = sid.split('.');
@@ -1118,7 +1127,7 @@ class Zigbee extends adapterCore.Adapter {
             // replace state
             return {
                 id: stateDef._id,
-                name: name.slice(0,128).replace(reg, ''),
+                name: name.slice(0,256).replace(reg_a, '').replace(reg_b, `The`),
                 type: stateDef.common.type,
                 read: stateDef.common.read,
                 write: stateDef.common.write,
@@ -1126,7 +1135,7 @@ class Zigbee extends adapterCore.Adapter {
                 role: stateDef.common.role,
                 unit: stateDef.common.unit,
                 states: stateDef.common.states,
-                isAction: stateDef.native?.isAction ?? false,
+                category: stateDef.native?.category,
                 isEvent: stateDef.common.isEvent ?? false,
             };
         });
