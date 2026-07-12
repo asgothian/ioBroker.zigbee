@@ -166,11 +166,24 @@ class Zigbee extends adapterCore.Adapter {
         } */
     }
 
-    filterError(errormessage, message, error) {
+    // Error-level output of filterError. With a stash key, repeated identical errors
+    // (e.g. every failed send to an unreachable device, one per ~5 seconds) are collected
+    // by the states controller instead of flooding the log: the first one is logged as an
+    // error, the repeats only update the counter shown in the errors view of the admin
+    // tab and in info.lasterror. The caller clears the key once the cause is resolved.
+    logFilteredError(stashKey, text) {
+        if (stashKey && this.stController) {
+            this.stController.stashErrors(stashKey, `${text} - repeats are counted, not logged (errors view in the admin tab)`, true);
+        } else {
+            this.log.error(text);
+        }
+    }
+
+    filterError(errormessage, message, error, stashKey) {
         if (error != null && error.code == undefined) {
             let em = error.stack.match(/failed \((.+?)\) at/);
             em = em || error.stack.match(/failed \((.+?)\)/);
-            this.log.error(`${message} no error code (${(em ? em[1] : 'undefined')})`);
+            this.logFilteredError(stashKey, `${message} no error code (${(em ? em[1] : 'undefined')})`);
             this.sendError(error, `${message} no error code`);
             if (this.debugActive) this.log.debug(`Stack trace for ${em}: ${error.stack}`);
             return;
@@ -178,7 +191,7 @@ class Zigbee extends adapterCore.Adapter {
 
         const ecode = errorCodes[error.code];
         if (ecode === undefined) {
-            this.log.error(errormessage);
+            this.logFilteredError(stashKey, errormessage);
             this.sendError(error, errormessage);
             return;
         }
@@ -194,11 +207,11 @@ class Zigbee extends adapterCore.Adapter {
                 this.log.warn(`${message}: Code ${error.code} (${ecode.message})`);
                 break;
             case E_ERROR:
-                this.log.error(`${message}: Code ${error.code} (${ecode.message})`);
+                this.logFilteredError(stashKey, `${message}: Code ${error.code} (${ecode.message})`);
                 this.sendError(error, `${message}: Code ${error.code} (${ecode.message})`);
                 break;
             default:
-                this.log.error(`${message}: Code ${error.code} (malformed error)`);
+                this.logFilteredError(stashKey, `${message}: Code ${error.code} (malformed error)`);
                 this.sendError(error, `${message}: Code ${error.code} (malformed error)`);
                 break;
         }
