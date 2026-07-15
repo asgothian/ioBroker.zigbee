@@ -773,7 +773,7 @@ class Zigbee extends adapterCore.Adapter {
         const model = (entity.mapped) ? entity.mapped.model : device.modelID;
         this.log.debug(`New device event: ${safeJsonStringify(utils.entityData(entity))}`);
         if (!entity.mapped && !entity.device.interviewing) {
-            const msg = `New device: '${devLabel(this, device.ieeeAddr)}' does not have a known model. please provide an external converter for '${device.modelID}'.`;
+            const msg = `New device: '${devLabel(this, device.ieeeAddr, model)}' does not have a known model. please provide an external converter for '${device.modelID}'.`;
             this.log.warn(msg);
             this.logToPairing(msg, true);
         }
@@ -785,10 +785,10 @@ class Zigbee extends adapterCore.Adapter {
         }
         if (device) {
             this.getObjectAsync(utils.zbIdorIeeetoAdId(this, device.ieeeAddr, false), (_err, obj) => {
-                if (!obj) this.logToPairing(`New device joined '${devLabel(this, device.ieeeAddr)}' model ${model}`, true);
+                if (!obj) this.logToPairing(`New device joined '${devLabel(this, device.ieeeAddr, model)}' model ${model}`, true);
             });
             const model = (entity.mapped) ? entity.mapped.model : entity.device.modelID;
-            if (this.debugActive) this.log.debug(`new device '${devLabel(this, device.ieeeAddr)}' ${device.networkAddress} ${model} `);
+            if (this.debugActive) this.log.debug(`new device '${devLabel(this, device.ieeeAddr, model)}' ${device.networkAddress} ${model} `);
             await this.stController.updateDev(utils.zbIdorIeeetoAdId(this, device.ieeeAddr, false), entity.name, model);
             await this.stController.syncDevStates(device, model);
         }
@@ -1126,7 +1126,7 @@ class Zigbee extends adapterCore.Adapter {
                 return rv;
             }
             const dev = entity ? entity.device || {} : {}
-            const msg = entity ? `device '${devLabel(this, dev.ieeeAddr)}' (${dev.ieeeAddr}, NWK ${dev.networkAddres}, ID: ${dev.ID})` : 'undefined device';
+            const msg = entity ? `device '${devLabel(this, dev.ieeeAddr, entity.mapped?.model)}' (${dev.ieeeAddr}, NWK ${dev.networkAddres}, ID: ${dev.ID})` : 'undefined device';
             this.log.warn(`Error ${error && error.message ? error.message + ' ' : ''}building device info for ${msg}`);
         }
         return rv;
