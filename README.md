@@ -142,6 +142,8 @@ You can thank the authors by these links:
 -----------------------------------------------------------------------------------------------------
 ## Changelog
 ### **WORK IN PROGRESS**
+* (kropipd) Device names in messages (#2735)
+* (asgothian) Bugfix - unknown cluster for new devices
 * (krobipd) Bugfix - Shelly gen4 Devices
 * (kropipd) various bugfixes
 * (asgothian) device manager updates
@@ -173,6 +175,9 @@ You can thank the authors by these links:
 * Fix: Controlling groups
 * Fix: Pairing battery powered devices
 
+
+
+Older changelog entries can be found [here](CHANGELOG_OLD.md).
 ## License
 The MIT License (MIT)
 
