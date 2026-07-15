@@ -767,7 +767,7 @@ class Zigbee extends adapterCore.Adapter {
     }
 
 
-    async newDevice(entity) {
+    async newDevice(entity, fromInterview) {
 
         const device = entity.device;
         const model = (entity.mapped) ? entity.mapped.model : device.modelID;
@@ -777,7 +777,12 @@ class Zigbee extends adapterCore.Adapter {
             this.log.warn(msg);
             this.logToPairing(msg, true);
         }
-        await this.stController.AddModelFromHerdsman(entity.device, model)
+        await this.stController.AddModelFromHerdsman(entity.device, model);
+        if (fromInterview) {
+            this.zbController.callExtensionMethod(
+                'onZigbeeEvent',
+                [{'device': entity.device, 'type': 'start', options: entity.options || {}}, entity ? entity.mapped : null]);
+        }
         if (device) {
             this.getObjectAsync(utils.zbIdorIeeetoAdId(this, device.ieeeAddr, false), (_err, obj) => {
                 if (!obj) this.logToPairing(`New device joined '${devLabel(this, device.ieeeAddr, model)}' model ${model}`, true);
