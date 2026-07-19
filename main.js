@@ -263,6 +263,7 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.on('send_payload', this.zbController.publishPayload.bind(this.zbController));
         this.stController.on('zb_devicecommand', this.zbController.zbDeviceCommand.bind(this.zbController));
         this.stController.on('changed', this.zbController.publishFromState.bind(this.zbController));
+        this.stController.on('read_states', this.zbController.readMultipleStates.bind(this.zbController))
         this.zbController.on('resend_states', this.stController.handleStateResend.bind(this.stController));
         this.stController.on('device_query', this.zbController.deviceQuery.bind(this.zbController));
         this.zbController.on('acknowledge_state', this.acknowledgeState.bind(this));
