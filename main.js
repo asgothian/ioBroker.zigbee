@@ -24,22 +24,22 @@ const net = require('node:net');
 // own components
 const safeJsonStringify = require('./lib/json');
 // plugins
-const SerialListPlugin = require('./lib/seriallist');
-const CommandsPlugin = require('./lib/commands');
-const GroupsPlugin = require('./lib/groups');
-const NetworkMapPlugin = require('./lib/networkmap');
-const DeveloperPlugin = require('./lib/developer');
-const BindingPlugin = require('./lib/binding');
-const OtaPlugin = require('./lib/ota');
-const BackupPlugin = require('./lib/backup');
+const SerialListPlugin = require('./lib/pluginSerialist.js');
+const CommandsPlugin = require('./lib/pluginCommands.js');
+const GroupsPlugin = require('./lib/pluginGroups.js');
+const NetworkMapPlugin = require('./lib/pluginNetworkMap.js');
+const DeveloperPlugin = require('./lib/pluginDeveloper.js');
+const BindingPlugin = require('./lib/pluginBinding.js');
+const OtaPlugin = require('./lib/pluginOta.js');
+const BackupPlugin = require('./lib/pluginBackup.js');
+const DeviceDebugPlugin = require('./lib/pluginDeviceDebug.js');
 // libraries
 const utils = require('./lib/utils');
 const { devLabel } = require('./lib/deviceLabel');
 const dmZigbee  = require('./lib/devicemgmt.js');
-const DeviceDebug = require('./lib/DeviceDebug');
-const localConfig = require('./lib/localConfig');
-const ZigbeeController = require('./lib/zigbeecontroller');
-const StatesController = require('./lib/statescontroller');
+const localConfig = require('./lib/localconfig.js');
+const ZigbeeController = require('./lib/zigbeecontroller.js');
+const StatesController = require('./lib/statesController.js');
 
 // ioroker components
 const adapterCore = require('@iobroker/adapter-core'); // Get common adapter utils
@@ -99,12 +99,11 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.on('acknowledge_state', this.acknowledgeState.bind(this));
 
         this.deviceManagement = new dmZigbee(this);
-        this.deviceDebug =  new DeviceDebug(this);
-        this.deviceDebug.on('log', this.onLog.bind(this));
         this.debugActive = true;
         this.onreadycount = 1;
 
         this.plugins = [
+            new DeviceDebugPlugin(this),
             new SerialListPlugin(this),
             new CommandsPlugin(this),
             new GroupsPlugin(this),
@@ -734,7 +733,7 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.CleanupRequired(false);
         if (rebuildStates) this.stController.clearModelDefinitions();
         const devicesFromObjects = (await this.getDevicesAsync()).filter(item => item.native.id.length ==16).map((item) => `0x${item.native.id}`);
-        const devicesFromDB = this.zbController.getClientIterator(false);
+        const devicesFromDB = this.zbController.getClientIterator();
         const promises = [];
         for (const device of devicesFromDB) {
             const idx = devicesFromObjects.indexOf(device.ieeeAddr);
@@ -1302,7 +1301,7 @@ class Zigbee extends adapterCore.Adapter {
             PromiseChain.push(this.fillInfo(deviceObject, entity, all_stateDefs.filter(item => item._id.startsWith(deviceObject._id)),all_states, models));
         }
         if (!id) {
-            for (const client of this.zbController.getClientIterator(true)) {
+            for (const client of this.zbController.getClientIterator([])) {
                 PromiseChain.push(this.appendDevicesWithoutObjects(deviceObjects,client));
             }
         }
