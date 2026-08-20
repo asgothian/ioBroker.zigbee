@@ -101,6 +101,7 @@ class Zigbee extends adapterCore.Adapter {
         this.deviceManagement = new dmZigbee(this);
         this.debugActive = true;
         this.onreadycount = 1;
+        this.connectionStatus=false;
 
         this.plugins = [
             new DeviceDebugPlugin(this),
@@ -234,7 +235,7 @@ class Zigbee extends adapterCore.Adapter {
         this.log.info('Adapter ready - starting subsystems. Adapter is running in '+(dbActive?.val ?? 'unknown')+ ' mode.');
         if (this.config.debugHerdsman) {
             if (debug) {
-                this.log.warn('Activating zigbee-herdsman debug connection - successful');
+                this.log.debug('Activating zigbee-herdsman debug connection - successful');
                 debug.log = this.debugLog.bind(this);
                 debug.enable('zigbee-herdsman*');
             }
@@ -249,19 +250,13 @@ class Zigbee extends adapterCore.Adapter {
         this.subscribeForeignStates(`system.adapter.${this.namespace}.logLevel`)
         // set connection false before connect to zigbee
         this.setState('info.connection', false, true);
-        // prime the device name cache before the zigbee subsystem starts logging, so devLabel
-        // resolves the stored (default) device names from the first log line on
-        await this.stController.loadDeviceNameCache();
         const zigbeeOptions = this.getZigbeeOptions();
         this.zbController = new ZigbeeController(this);
-
         this.zbController.on('log', this.onLog.bind(this));
         this.zbController.on('ready', this.onZigbeeAdapterReady.bind(this));
         this.zbController.on('disconnect', this.onZigbeeAdapterDisconnected.bind(this));
         this.zbController.on('new', this.newDevice.bind(this));
         this.zbController.on('leave', this.stController.leaveDevice.bind(this.stController));
-        // the device manager serves its list from a 10 second cache, so drop it here - otherwise the
-        // tile of the departed device outlives its object by that much
         this.zbController.on('leave', () => this.deviceManagement.invalidateDeviceCache());
         this.zbController.on('announce', this.stController.announceDevice.bind(this));
         this.zbController.on('pairing', this.onPairing.bind(this));
@@ -282,8 +277,6 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.debugActive = this.debugActive;
         await this.callPluginMethod('configure', [zigbeeOptions]);
 
-        // elevated debug handling
-        this.deviceDebug.start(this.stController, this.zbController);
         this.reconnectDelay =  this.config.reconnectDelay || 10;
 
         this.reconnectCounter = this.config.reconnectCount;
@@ -469,6 +462,9 @@ class Zigbee extends adapterCore.Adapter {
         this.reconnectTimer = null;
         const zo = message?.zigbeeOptions ?? {};
         if (message.start) {
+            if (this.connectionStatus) {
+                return {status:this.connectionStatus }
+            }
             try {
                 const keys = Object.keys(zo);
                 if (keys) {
@@ -485,6 +481,7 @@ class Zigbee extends adapterCore.Adapter {
             catch (error) {
                 try {
                     await this.zbController.stopHerdsman();
+                    this.updateConnected(false);
                 }
                 catch {
                     // intentionally empty
@@ -492,12 +489,14 @@ class Zigbee extends adapterCore.Adapter {
                 return { status:false, error };
             }
         }
-        else try {
+        else if (this.connectionStatus) try {
             await this.zbController.stopHerdsman();
+            this.updateConnected(false);
             return { status:true };
         } catch (error) {
             return { status:true, error };
         }
+        else return { status:this.connectionStatus };
     }
 
     async doConnect(noReconnect) {
@@ -521,8 +520,9 @@ class Zigbee extends adapterCore.Adapter {
             if (noReconnect) this.logToPairing(`Installed Version: ${gitVers} (Converters ${zigbeeHerdsmanConvertersPackage.version} Herdsman ${zigbeeHerdsmanPackage.version})`);
             this.log.info(`Installed Version: ${gitVers} (Converters ${zigbeeHerdsmanConvertersPackage.version} Herdsman ${zigbeeHerdsmanPackage.version})`);
             const result = await this.zbController.start(noReconnect);
+            this.updateConnected(true);
         } catch (error) {
-            this.setState('info.connection', false, true);
+            this.updateConnected(false);
             this.logToPairing(`Failed to start Zigbee: ${error && error.message ? error.message : 'no message given'}`)
             this.log.error(`Failed to start Zigbee: ${error && error.message ? error.message : 'no message given'}`);
             this.sendError(error, `Failed to start Zigbee`);
@@ -540,12 +540,17 @@ class Zigbee extends adapterCore.Adapter {
         return status;
     }
 
+    updateConnected(state) {
+        this.connectionStatus = state;
+        this.setState('info.connection', state, true);
+    }
+
     async onZigbeeAdapterDisconnected() {
         this.reconnectCounter = this.config?.reconnectCount ?? 5;
         this.reconnectDelay = this.config?.reconnectDelay ?? 10;
         this.log.error('Adapter disconnected, stopping');
         this.sendError('Adapter disconnected, stopping');
-        this.setState('info.connection', false, true);
+        this.updateConnected(false);
         await this.zbController.stop();
         await this.callPluginMethod('stop');
         this.log.warn('Adapter stopped');
@@ -709,6 +714,7 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.updateCoordinatorIEEE(await this.zbController.getCoordinatorIeee());
 
         await this.callPluginMethod('start', [this.zbController, this.stController]);
+        this.adapterStarted = true;
     }
 
     async syncDeviceState(device, rebuild) {
@@ -745,11 +751,9 @@ class Zigbee extends adapterCore.Adapter {
         return devicesFromObjects;
     }
 
-    acknowledgeState(deviceId, model, stateDesc, value) {
-        const stateId = `${utils.zbIdorIeeetoAdId(this, deviceId, true)}.${stateDesc.id}`;
-        /*const stateId = (model === 'group' ?
-            `${this.namespace}.group_${deviceId}.${stateDesc.id}` :
-            `${this.namespace}.${deviceId.replace('0x', '')}.${stateDesc.id}`); */
+    acknowledgeState(deviceId, stateId, value) {
+        const fullStateId = stateId.includes(deviceId) ? stateId : `${utils.zbIdorIeeetoAdId(this, deviceId, true)}.${stateId}`;
+
         if (value === undefined) {
             try {
                 this.getState(stateId, (err, state) => {
@@ -779,7 +783,7 @@ class Zigbee extends adapterCore.Adapter {
 
         const device = entity.device;
         const model = (entity.mapped) ? entity.mapped.model : device.modelID;
-        this.log.debug(`New device event: ${safeJsonStringify(utils.entityData(entity))}`);
+        this.log.debug(`New device event: ${JSON.stringify(utils.entityData(entity))}`);
         if (!entity.mapped && !entity.device.interviewing) {
             const msg = `New device: '${devLabel(this, device.ieeeAddr, model)}' does not have a known model. please provide an external converter for '${device.modelID}'.`;
             this.log.warn(msg);
@@ -802,18 +806,6 @@ class Zigbee extends adapterCore.Adapter {
         }
     }
 
-    /*
-
-    leaveDevice(ieeeAddr) {
-        if (this.debugActive) this.log.debug(`Leave device event: '${devLabel(this, ieeeAddr)}'`);
-        if (ieeeAddr) {
-            const devId = zbIdorIeeetoAdId(this, ieeeAddr, false);
-            if (this.debugActive) this.log.debug(`Delete device '${devLabel(this, devId)}' from iobroker.`);
-            this.stController.deleteObj(devId);
-        }
-    }
-
-    */
     async callPluginMethod(method, parameters) {
         for (const plugin of this.plugins) {
             if (plugin[method]) {
@@ -1306,7 +1298,7 @@ class Zigbee extends adapterCore.Adapter {
             }
         }
 
-        await Promise.all(PromiseChain);
+        await Promise.allSettled(PromiseChain);
 
         for (const groupmember in groups) {
             const device = deviceObjects.find(dev => (groupmember === dev.native.id));
@@ -1395,9 +1387,11 @@ class Zigbee extends adapterCore.Adapter {
             else {
                 coordinatorinfo.version = this.adapter.config.autostart ? 'not connected' : 'autostart not set';
                 coordinatorinfo.revision = this.adapter.config.autostart ? 'not connected' : 'autostart not set';
+                coordinatorinfo.error = coordinatorinfo.version;
             }
-        } catch {
-            this.log.warn('exception raised in getCoordinatorInfo');
+        } catch (error) {
+            this.log.warn(`error ${error?.message ?? 'no message given'} in getCoordinatorInfo`);
+            coordinatorinfo.error = error?.message;
         }
 
         this.log.debug(`getCoordinatorInfo result: ${JSON.stringify(coordinatorinfo)}`);
