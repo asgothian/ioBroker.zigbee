@@ -1611,7 +1611,8 @@ async function editDeviceOptions(id, isModel) {
                     html_options.push(`<div class="input-field  col s5 m5 l5"><input ${disabled}id="option_key_${k}" type="text" class="value" /><label for="option_key_${k}">Option</label></div>`)
                     html_options.push(`<div class="input-field  col s5 m5 l5"><input id="option_value_${k}" type="number"${expose.value_min != undefined ? ' min="'+expose.value_min+'"' : ''}${expose.value_max != undefined ? ' max="'+expose.value_max+'"' : ''}${expose.value_step != undefined ? ' step="'+expose.value_step+'"' : ''} class="value" /><label>${expose.label ? expose.label : 'Value'}</label></div>`)
                     break;
-                case 'binary': {
+                case 'binary':
+                case 'boolean': {
                     html_options.push(`<div class="input-field col s5 m5 l5">
                         <input ${disabled}id="option_key_${k}" type="text" class="value" />
                         <label for="option_key_${k}">Option</label></div>`);
