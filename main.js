@@ -15,19 +15,19 @@ const net = require('node:net');
 // own components
 const safeJsonStringify = require('./lib/json');
 // plugins
-const SerialListPlugin = require('./lib/seriallist');
-const CommandsPlugin = require('./lib/commands');
-const GroupsPlugin = require('./lib/groups');
-const NetworkMapPlugin = require('./lib/networkmap');
-const DeveloperPlugin = require('./lib/developer');
-const BindingPlugin = require('./lib/binding');
-const OtaPlugin = require('./lib/ota');
-const BackupPlugin = require('./lib/backup');
+const SerialListPlugin = require('./lib/pluginSeriallist');
+const CommandsPlugin = require('./lib/pluginCommands');
+const GroupsPlugin = require('./lib/pluginGroups');
+const NetworkMapPlugin = require('./lib/pluginNetworkMap');
+const DeveloperPlugin = require('./lib/pluginDeveloper');
+const BindingPlugin = require('./lib/pluginBinding');
+const OtaPlugin = require('./lib/pluginOta');
+const BackupPlugin = require('./lib/pluginBackup');
+const DeviceDebug = require('./lib/pluginDeviceDebug');
 // libraries
 const utils = require('./lib/utils');
 const { devLabel } = require('./lib/deviceLabel');
 const dmZigbee  = require('./lib/devicemgmt.js');
-const DeviceDebug = require('./lib/DeviceDebug');
 const localConfig = require('./lib/localConfig');
 const ZigbeeController = require('./lib/zigbeecontroller');
 const StatesController = require('./lib/statescontroller');
@@ -90,12 +90,13 @@ class Zigbee extends adapterCore.Adapter {
         this.stController.on('acknowledge_state', this.acknowledgeState.bind(this));
 
         this.deviceManagement = new dmZigbee(this);
-        this.deviceDebug =  new DeviceDebug(this);
-        this.deviceDebug.on('log', this.onLog.bind(this));
+        //this.deviceDebug = new DeviceDebug(this);
         this.debugActive = true;
         this.onreadycount = 1;
 
         this.plugins = [
+            //this.deviceDebug,
+            new DeviceDebug(this),
             new SerialListPlugin(this),
             new CommandsPlugin(this),
             new GroupsPlugin(this),
@@ -236,9 +237,15 @@ class Zigbee extends adapterCore.Adapter {
         this.zbController.on('ready', this.onZigbeeAdapterReady.bind(this));
         this.zbController.on('disconnect', this.onZigbeeAdapterDisconnected.bind(this));
         this.zbController.on('new', this.newDevice.bind(this));
+        //
+        // !!AE: on a new device, we want to update the DM cache without needing a full getDevices
+        //
         this.zbController.on('leave', this.stController.leaveDevice.bind(this.stController));
         // the device manager serves its list from a 10 second cache, so drop it here - otherwise the
         // tile of the departed device outlives its object by that much
+        //
+        // !!AE: This needs fixing  - we do not want to invalidate the cache, we want to remove the device.
+        //
         this.zbController.on('leave', () => this.deviceManagement.invalidateDeviceCache());
         this.zbController.on('announce', this.stController.announceDevice.bind(this));
         this.zbController.on('pairing', this.onPairing.bind(this));
@@ -260,7 +267,7 @@ class Zigbee extends adapterCore.Adapter {
         await this.callPluginMethod('configure', [zigbeeOptions]);
 
         // elevated debug handling
-        this.deviceDebug.start(this.stController, this.zbController);
+        // this.deviceDebug.start(this.stController, this.zbController);
         this.reconnectDelay =  this.config.reconnectDelay || 10;
 
         this.reconnectCounter = this.config.reconnectCount;

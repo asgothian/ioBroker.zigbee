@@ -92,16 +92,12 @@ const connectionStatus = {
 
 function keepAlive(callback) {
     const responseTimeout = setTimeout(function() {
-        UpdateAdapterAlive(false); }, 500);
+        UpdateAdapterAlive(false); }, 100);
     sendTo(namespace, 'aliveCheck', {}, function(msg) {
         clearTimeout(responseTimeout);
         UpdateAdapterAlive(true);
         if (callback) callback();
     });
-}
-
-function startKeepalive() {
-    return setInterval(() => UpdateAdapterAlive(false), 120000);
 }
 
 function UpdateAdapterAlive(state) {
@@ -118,6 +114,11 @@ function UpdateAdapterAlive(state) {
         $('#download_icons_btn').removeClass('disabled');
         $('#rebuild_states_btn').removeClass('disabled');
         $('#pairing').removeClass('disabled');
+        getDevices();
+        getDebugMessages();
+        getMap(false);
+        getNamedColors();
+        readNVRamBackup(false);
     }
     else {
         $('#adapterStopped_btn').removeClass('hide');
@@ -141,9 +142,11 @@ function UpdateAdapterAlive(state) {
 //
 ////
 function sendToWrapper(target,command,msg,callback) {
-    if (connectionStatus.connected)
-        sendTo(target,command,msg,callback);
-    else if (callback) callback({error:'Cannot execute command - adapter is not running'});
+    keepAlive(() => {
+        if (connectionStatus.connected)
+            sendTo(target,command,msg,callback);
+        else if (callback) callback({error:'Cannot execute command - adapter is not running'});
+    })
 }
 
 function getDeviceByID(ID) {
@@ -224,6 +227,56 @@ function updateFoldModel(model, devices, options) {
     if (devices) m.devices = !m.devices;
     if (options) m.options = !m.options;
     return m;
+}
+
+function getModelCard(key, model) {
+    //const key = model.model.model;
+    //console.warn(`getmodeldata: model is ${key}, sO: ${JSON.stringify(model.setOptions)}`);
+    const numOptions = Object.keys(model.setOptions).length + ((typeof model.setOptions.options === 'object' && model.setOptions.options != null) ? Object.keys(model.setOptions.options).length-1 : 0);
+    const numDevices = model.devices.length;
+    const legacy = model.setOptions?.options?.legacy ? 'Legacy' : 'Exposed'
+    const devtxt = (model.devices.length) ? `${model.model.type}${model.devices.length > 1 ? 's' : ''}` : '';
+
+    const cardParts = [];
+    cardParts.push(`<div id="model_card_${key}" class="model_overeride"><div class="card model_override">`);
+    cardParts.push(`<div class="card-title truncate">${legacy} model</div>`)
+    cardParts.push(`<div class="card-content">`)
+    cardParts.push(`<div class="row><i class="material-icons small">devices</i>${devtxt} ${model.model.model}`);
+    if (model?.setOptions?.icon) {
+        cardParts.push(`<i class="right i-binding"><img src="${model.model.icon}" width="128px"></i>`);
+        cardParts.push(`<i class="left i-binding"><img src="${model.setOptions.icon}" width="128px"></i>`);
+    }
+    else {
+        cardParts.push(`<i class="left i-binding"><img src="${model.model.icon}" width="128px"</i>`);
+    }
+    for (const dev of model.devices) {
+        cardParts.push(`<div class=row><div class="col s6">${dev?.ieeeAddr}</div><div class="col">${dev?.common?.name}</div></div>`);
+    }
+    cardParts.push('</div>')
+    if (numOptions) {
+        cardParts.push(`<div class="row"><i class="material-icons small">blur_circular</i>${devtxt}</row>`);
+        for (const oKey of Object.keys(model.setOptions)) {
+            if (typeof model.setOptions[oKey] === 'object') {
+                const oo = model.setOptions[oKey];
+                for (const ok of Object.keys(oo)) {
+                    cardParts.push(`<div class="row"><div class="col s6 s6">${ok}</div><div class="col" ${oo[ok] === undefined ? 'id="datared">"not set on model"' : '>'+oo[ok]}</div></div>`)
+                }
+            }
+            else {
+                cardParts.push(`<div class="row"><div class="col s6">${oKey}</div><div class="col s6" ${model.setOptions[oKey] === undefined ? 'id="datared">"not set on model"' : '>'+model.setOptions[oKey]}</div></div>`)
+            }
+        }
+
+    }
+    cardParts.push('</div></div>');
+    cardParts.push(`<div class="card-action"><div class="card-reveal-buttons zcard"><button name="edit_devices" class="right btn-flat btn-small">
+                                <i class="material-icons icon-black">edit</i><i class="material-icons icon-black">devices</i>
+                            </button>
+                            <button name="edit_options" class="right btn-flat btn-small">
+                                <i class="material-icons icon-black">edit</i><i class="material-icons icon-black">blur_circular</i>
+                            </button>
+                 </div></div></div></div>`);
+    return cardParts.join('');
 }
 
 
@@ -373,7 +426,26 @@ function sortAndFilter(filter, sort) {
     return filterMap;
 }
 
+function showLocalDataOnCard() {
+    if (tabOrSettings) return;
+    const element = $('#tab-overrides-content');
+    element.find('.model_override').remove();
+
+    // implement sorting and filtering
+    for (const key of Object.keys(models)) {
+        element.append(getModelCard(key, models[key]));
+    }
+    $('#tab-overrides-content button[name=\'edit_devices\']').click(function () {
+        console.warn(`edit Device clicked on ${$(this).parents('.tab-overrides-content')[0].id}`)
+    });
+    $('#tab-overrides-content button[name=\'edit_options\']').click(function () {
+        console.warn(`edit options clicked on ${$(this).parents('.tab-overrides-content')[0].id}`)
+    });
+
+}
+
 function showLocalData() {
+    //return showLocalDataOnCard();
     if (tabOrSettings) return;
     LocalDataDisplayValues.buttonSet.clear();
     ;
@@ -1205,36 +1277,6 @@ function showDevices() {
     let html = '';
     let hasCoordinator = false;
     const lang = systemLang || 'en';
-    // sort by rooms
-/*
-    devices.sort((a, b) => {
-        const roomsA = [], roomsB = [];
-        for (const r in a.rooms) {
-            if (a.rooms[r].hasOwnProperty(lang)) {
-                roomsA.push(a.rooms[r][lang]);
-            } else {
-                roomsA.push(a.rooms[r]);
-            }
-        }
-        const nameA = roomsA.join(',');
-        for (const r in b.rooms) {
-            if (b.rooms[r].hasOwnProperty(lang)) {
-                roomsB.push(b.rooms[r][lang]);
-            } else {
-                roomsB.push(b.rooms[r]);
-            }
-        }
-        const nameB = roomsB.join(',');
-
-        if (nameB < nameB) {
-            return -1;
-        }
-        if (nameA > nameB) {
-            return 1;
-        }
-        return 0;
-    });
-*/
     for (let i = 0; i < devices.length; i++) {
         const d = devices[i];
         if (d.common && d.common.type == 'group') {
@@ -1247,9 +1289,7 @@ function showDevices() {
             const card = getCoordinatorCard(d);
             html += card;
         } else {
-            //if (d.groups && d.info && d.info.device.type == "Router") {
             if (d.groups) {
-                //devGroups[d._id] = d.groups;
                 if (typeof d.groups.map == 'function') {
                     d.groupNames = d.groups.map(item => {
                         return groups[item] || '';
@@ -1267,38 +1307,10 @@ function showDevices() {
     $('#devices').html(html);
     hookControls();
 
-    // update rooms filter
-/*
-    const allRooms = new Set(devices.map((item) => item.rooms).flat().map((room) => {
-        if (room && room.hasOwnProperty(lang)) {
-            return room[lang];
-        } else {
-            return room;
-        }
-    }).filter((item) => item != undefined));
-    //console.warn(`rooms is ${JSON.stringify(allRooms)}`);
-    const roomSelector = $('#room-filter');
-    roomSelector.empty();
-    roomSelector.append(`<li class="device-order-item" data-type="All" tabindex="0"><a class="translate" data-lang="All">All</a></li>`);
-    Array.from(allRooms)
-        .sort()
-        .forEach((item) => {
-            roomSelector.append(`<li class="device-order-item" data-type="${item}" tabindex="0"><a class="translate" data-lang="${item}">${item}</a></li>`);
-        });
-    $('#room-filter a').click(function () {
-        $('#room-filter-btn').text($(this).text());
-        doFilter();
-    });
-*/
     $('.flip').click(function () {
         const card = $(this).parents('.card');
         card.toggleClass('flipped');
     });
-/*
-    $('#rotate_btn').click(function () {
-        $('.card.flipable').toggleClass('flipped');
-    });
-*/
     const element = $('#devices');
 
     if ($('tab-main')) try {
@@ -2477,20 +2489,21 @@ function load(settings, onChange) {
 
     //dialog = new MatDialog({EndingTop: '50%'});
     //const keepAliveHandle = startKeepalive();
-    keepAlive(() => {
-        getDevices();
-        getMap(false);
-        getNamedColors();
-        readNVRamBackup(false);
-        sendToWrapper(namespace, 'getGroups', {}, function (data) {
-            groups = data.groups || {};
-        //showGroups();
-        });
-        sendToWrapper(namespace, 'getLibData', {key: 'cidList'}, function (data) {
-            cidList = data.list;
-        });
+    keepAlive()
 
-    })
+    getDevices();
+    getDebugMessages();
+    getMap(false);
+    getNamedColors();
+    readNVRamBackup(false);
+    sendToWrapper(namespace, 'getGroups', {}, function (data) {
+        groups = data.groups || {};
+    //showGroups();
+    });
+    sendToWrapper(namespace, 'getLibData', {key: 'cidList'}, function (data) {
+        cidList = data.list;
+    });
+
 
     //getDebugMessages();
     //getMap();
