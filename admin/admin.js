@@ -239,45 +239,104 @@ function getModelCard(key, model) {
 
     const cardParts = [];
     cardParts.push(`<div id="model_card_${key}" class="model_overeride"><div class="card model_override">`);
-    cardParts.push(`<div class="card-title truncate">${legacy} model</div>`)
-    cardParts.push(`<div class="card-content">`)
-    cardParts.push(`<div class="row><i class="material-icons small">devices</i>${devtxt} ${model.model.model}`);
+    cardParts.push(`<div class="card-title truncate">${legacy} model ${model.model.model}</div>`)
+    cardParts.push(`<div class="card-content"></div><div class="row"><table style="width:100%"><tr><td rowspan=2 style="width:130px">`)
     if (model?.setOptions?.icon) {
-        cardParts.push(`<i class="right i-binding"><img src="${model.model.icon}" width="128px"></i>`);
-        cardParts.push(`<i class="left i-binding"><img src="${model.setOptions.icon}" width="128px"></i>`);
+        cardParts.push(`<img src="${model.setOptions.icon}" width="128px">`);
     }
-    else {
-        cardParts.push(`<i class="left i-binding"><img src="${model.model.icon}" width="128px"</i>`);
-    }
+    else cardParts.push(`<img src="${model.model.icon}" width="128px">`);
+
+    cardParts.push('</td><td style="width:auto"><i class="material-icons small">devices</i></td><td><ul>');
+
     for (const dev of model.devices) {
-        cardParts.push(`<div class=row><div class="col s6">${dev?.ieeeAddr}</div><div class="col">${dev?.common?.name}</div></div>`);
+        cardParts.push(`<li><span class="optionlabel">${dev?.common?.name}</span>0x${dev?.native?.id ?? `0000000000000000`}</li>`)
     }
-    cardParts.push('</div>')
+
+    cardParts.push(`</ul></td><td rowspan="2" style="width:130px">`);
+    if (model?.setOptions?.icon)
+        cardParts.push(`<img src="${model.model.icon}" width="128px">`);
+    else
+        cardParts.push('&nbsp;');
+    cardParts.push(`</td></tr><tr><td  style="width:auto"><i class="material-icons small">blur_circular</i></td><td><ul>`);
+
     if (numOptions) {
-        cardParts.push(`<div class="row"><i class="material-icons small">blur_circular</i>${devtxt}</row>`);
         for (const oKey of Object.keys(model.setOptions)) {
             if (typeof model.setOptions[oKey] === 'object') {
                 const oo = model.setOptions[oKey];
                 for (const ok of Object.keys(oo)) {
-                    cardParts.push(`<div class="row"><div class="col s6 s6">${ok}</div><div class="col" ${oo[ok] === undefined ? 'id="datared">"not set on model"' : '>'+oo[ok]}</div></div>`)
+                    cardParts.push(`<li><span class="optionlabel">${ok}</span>${oo[ok] === undefined ? 'not set on model' : oo[ok]}</li>`)
                 }
             }
             else {
-                cardParts.push(`<div class="row"><div class="col s6">${oKey}</div><div class="col s6" ${model.setOptions[oKey] === undefined ? 'id="datared">"not set on model"' : '>'+model.setOptions[oKey]}</div></div>`)
+                cardParts.push(`<li><span class="optionlabel">${oKey}</span>${model.setOptions[oKey] === undefined ? 'not set on model' : model.setOptions[oKey]}</li>`)
             }
         }
 
     }
-    cardParts.push('</div></div>');
+    cardParts.push('</ul></td></tr></table></div>');
     cardParts.push(`<div class="card-action"><div class="card-reveal-buttons zcard"><button name="edit_devices" class="right btn-flat btn-small">
-                                <i class="material-icons icon-black">edit</i><i class="material-icons icon-black">devices</i>
+                                <i class="material-icons icon-black">devices</i><i class="material-icons icon-black">edit</i>
                             </button>
                             <button name="edit_options" class="right btn-flat btn-small">
-                                <i class="material-icons icon-black">edit</i><i class="material-icons icon-black">blur_circular</i>
+                                <i class="material-icons icon-black">blur_circular</i><i class="material-icons icon-black">edit</i>
                             </button>
                  </div></div></div></div>`);
     return cardParts.join('');
 }
+
+/*
+function getModelCard(key, model) {
+    //const key = model.model.model;
+    //console.warn(`getmodeldata: model is ${key}, sO: ${JSON.stringify(model.setOptions)}`);
+    const numOptions = Object.keys(model.setOptions).length + ((typeof model.setOptions.options === 'object' && model.setOptions.options != null) ? Object.keys(model.setOptions.options).length-1 : 0);
+    const numDevices = model.devices.length;
+    const legacy = model.setOptions?.options?.legacy ? 'Legacy' : 'Exposed'
+    const devtxt = (model.devices.length) ? `${model.model.type}${model.devices.length > 1 ? 's' : ''}` : '';
+
+    const cardParts = [];
+    cardParts.push(`<div id="model_card_${key}" class="model_overeride"><div class="card model_override">`);
+    cardParts.push(`<div class="card-title truncate">${legacy} model ${model.model.model}</div>`)
+    cardParts.push(`<div class="card-content"><div class="row">`)
+    //let backCol = `<class = "col s3">img src="${model.model.icon}" width="128px">`;
+    let colwidth = 9;
+    if (model?.options?.icon) {
+        colwidth = 6
+        cardParts.push(`<div class="col s3"><img src="${model.options.icon}" width="128px"></div><div class="col s${colwidth}"`);
+    }
+    else cardParts.push(`<div class="col s3"><img src="${model.model.icon}" width="128px"></div>`);
+
+    cardParts.push(`<div class="col s${colwidth}"><i class="material-icons small">devices</i>${model.devices.length} ${devtxt} ${model.model.model}`);
+    for (const dev of model.devices) {
+        cardParts.push(`<div class=row><div class="col s3">0x${dev?.native?.id ?? `0000000000000000`}</div><div class="col s${colwidth-3}">${dev?.common?.name}</div></div>`);
+    }
+
+    if (numOptions) {
+        cardParts.push(`<div class="row"><i class="material-icons small">blur_circular</i>${numDevices} ${devtxt}</div>`);
+        for (const oKey of Object.keys(model.setOptions)) {
+            if (typeof model.setOptions[oKey] === 'object') {
+                const oo = model.setOptions[oKey];
+                for (const ok of Object.keys(oo)) {
+                    cardParts.push(`<div class="row"><div class="col s3 s3">${ok}</div><div class="col s${colwidth-3}" ${oo[ok] === undefined ? 'id="datared">"not set on model"' : '>'+oo[ok]}</div></div>`)
+                }
+            }
+            else {
+                cardParts.push(`<div class="row"><div class="col s3">${oKey}</div><div class="col  s${colwidth-3}" ${model.setOptions[oKey] === undefined ? 'id="datared">"not set on model"' : '>'+model.setOptions[oKey]}</div></div>`)
+            }
+        }
+
+    }
+    cardParts.push('</div>');
+    if (model?.options?.icon) cardParts.push(`<class = "col s3">img src="${model.model.icon}" width="128px"></div>`);
+    cardParts.push(`</div><div class="card-action"><div class="card-reveal-buttons zcard"><button name="edit_devices" class="right btn-flat btn-small">
+                                <i class="material-icons icon-black">devices</i><i class="material-icons icon-black">edit</i>
+                            </button>
+                            <button name="edit_options" class="right btn-flat btn-small">
+                                <i class="material-icons icon-black">blur_circular</i><i class="material-icons icon-black">edit</i>
+                            </button>
+                 </div></div></div></div>`);
+    return cardParts.join('');
+}
+*/
 
 
 function getModelData(data, models, keys) {
@@ -445,7 +504,7 @@ function showLocalDataOnCard() {
 }
 
 function showLocalData() {
-    //return showLocalDataOnCard();
+    return showLocalDataOnCard();
     if (tabOrSettings) return;
     LocalDataDisplayValues.buttonSet.clear();
     ;
